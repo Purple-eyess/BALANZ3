@@ -6,6 +6,10 @@ import {
   Bug, Trophy, Medal, Star, Award, Sparkles, Bot, MessageSquare, Key
 } from 'lucide-react';
 
+// --- API CONFIG ---
+// Clave del propietario para facilitar el uso a los usuarios
+const apiKey = "AIzaSyBfdH-HOAYi0k9kCf6lHr8504QIl8BTdW4";
+
 // --- DATA ---
 const FINANCIAL_TIPS = [
   { quote: "No ahorres lo que te queda después de gastar, gasta lo que te queda después de ahorrar.", author: "Warren Buffett" },
@@ -71,11 +75,6 @@ export default function App() {
   const [seenAchievements, setSeenAchievements] = useState(() => {
     try { return JSON.parse(localStorage.getItem('balanz3_seen_achievements')) || []; } catch { return []; }
   });
-
-  // NUEVO: Estado para la API Key del usuario
-  const [userApiKey, setUserApiKey] = useState(() => {
-    try { return localStorage.getItem('balanz3_api_key') || ""; } catch { return ""; }
-  });
   
   const [darkMode, setDarkMode] = useState(() => typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)').matches : false);
   const [currentMonthDate, setCurrentMonthDate] = useState(new Date());
@@ -107,7 +106,6 @@ export default function App() {
   useEffect(() => localStorage.setItem('balanz3_savings_goal', JSON.stringify(savingsGoal)), [savingsGoal]);
   useEffect(() => localStorage.setItem('balanz3_fixed_expenses', JSON.stringify(fixedExpensesGoal)), [fixedExpensesGoal]);
   useEffect(() => localStorage.setItem('balanz3_seen_achievements', JSON.stringify(seenAchievements)), [seenAchievements]);
-  useEffect(() => localStorage.setItem('balanz3_api_key', userApiKey), [userApiKey]); // Guardar API Key
   
   useEffect(() => {
     setDailyTip(FINANCIAL_TIPS[Math.floor(Math.random() * FINANCIAL_TIPS.length)]);
@@ -193,12 +191,6 @@ export default function App() {
   
   // --- ZENBOT AI ---
   const generateFinancialAdvice = async () => {
-    // Verificar si hay Key
-    if (!userApiKey) {
-      setAiAdvice("⚠️ ¡Ups! Necesito una llave para funcionar.\n\nVe a Ajustes ⚙️ e ingresa tu 'Google API Key'. Es gratis y fácil de conseguir en aistudio.google.com");
-      return;
-    }
-
     setIsAiLoading(true);
     setAiAdvice('');
     const contextPrompt = `Actúa como ZenBot (BALANZ3), un asesor financiero amigable. Analiza:
@@ -212,7 +204,7 @@ export default function App() {
       Instrucciones: Dame un consejo corto, empático y usa emojis. Si hay muchos gastos hormiga, adviérteme.`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: contextPrompt }] }] })
       });
       const data = await response.json();
@@ -221,9 +213,9 @@ export default function App() {
         throw new Error(data.error.message);
       }
       
-      setAiAdvice(data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude conectar. Verifica tu llave.");
+      setAiAdvice(data.candidates?.[0]?.content?.parts?.[0]?.text || "No pude conectar. Intenta luego.");
     } catch (e) { 
-      setAiAdvice("Error de conexión. 🤖\nVerifica que tu API Key en Ajustes sea correcta."); 
+      setAiAdvice("Error de conexión. 🤖\nVerifica tu conexión a internet."); 
     }
     finally { setIsAiLoading(false); }
   };
@@ -450,24 +442,6 @@ export default function App() {
               <div className="flex items-center gap-3 mb-4"><button onClick={() => setView('dashboard')} className="text-stone-500 hover:text-stone-800 dark:hover:text-white"><ChevronLeft /></button><h2 className="text-xl font-bold text-stone-800 dark:text-white">Ajustes</h2></div>
               <div className="space-y-3">
                 
-                {/* --- INPUT DE API KEY --- */}
-                <div className="w-full bg-white dark:bg-stone-800 p-4 rounded-2xl shadow-sm">
-                  <div className="flex items-center gap-3 mb-2 text-stone-700 dark:text-stone-200">
-                    <Key size={20} className="text-yellow-500" />
-                    <span className="font-medium">Tu Llave Maestra (API Key)</span>
-                  </div>
-                  <input 
-                    type="password" 
-                    value={userApiKey}
-                    onChange={(e) => setUserApiKey(e.target.value)}
-                    placeholder="Pega tu API Key de Google aquí"
-                    className="w-full bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                  <p className="text-[10px] text-stone-400 mt-2">
-                    Consíguela gratis en <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-purple-500 underline">Google AI Studio</a>.
-                  </p>
-                </div>
-
                 <button onClick={() => setShowFixedConfig(true)} className="w-full bg-white dark:bg-stone-800 p-4 rounded-2xl flex items-center gap-3 text-stone-700 dark:text-stone-200 shadow-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"><Home size={20} className="text-blue-500" /><span>Configurar Gastos Fijos</span></button>
                 <button onClick={() => setDarkMode(!darkMode)} className="w-full bg-white dark:bg-stone-800 p-4 rounded-2xl flex justify-between items-center text-stone-700 shadow-sm"><div className="flex gap-3"><Moon size={20} className="text-purple-400"/><span>Modo Oscuro</span></div><div className={`w-12 h-6 rounded-full p-1 transition-colors ${darkMode?'bg-purple-500':'bg-stone-300'}`}><div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${darkMode?'translate-x-6':''}`}></div></div></button>
                 <button onClick={exportToCSV} className="w-full bg-white dark:bg-stone-800 p-4 rounded-2xl flex items-center gap-3 text-stone-700 shadow-sm"><Download size={20} className="text-blue-500" /><span>Exportar CSV</span></button>
